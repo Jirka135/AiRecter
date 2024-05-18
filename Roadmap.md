@@ -1,26 +1,5 @@
 # Project Roadmap: Browser-based AI-Generated Image Recognition
 
-## 1. Initial Planning and Research
-- **Define Objectives**: Outline the goals of the project, including specific features and capabilities.
-- **Market Research**: Investigate existing solutions and identify gaps.
-- **Feasibility Study**: Evaluate technical feasibility, resources, and time required.
-
-## 2. Learning and Skill Development
-- **Programming Languages**: JavaScript, Python, WebAssembly.
-- **Frameworks and Libraries**: TensorFlow.js, React.js.
-- **Image Processing and Machine Learning**: Study image recognition techniques and machine learning models.
-
-## 3. Technology Stack Selection
-- **Frontend**: HTML, CSS, JavaScript, React.js or Vue.js.
-- **Backend**: Node.js, Express.js (optional).
-- **Database**: MongoDB, Firebase (optional).
-- **Machine Learning**: TensorFlow.js or other suitable ML frameworks.
-
-## 4. Project Setup
-- **Version Control**: Set up a Git repository.
-- **Development Environment**: Configure development environment with necessary tools and libraries.
-- **Project Structure**: Define the structure of the project, organizing folders and files logically.
-
 ## 5. Core Development Phases
 ### Phase 1: Basic Frontend and UI
 - **Initial Layout**: Create the basic layout using HTML and CSS.
