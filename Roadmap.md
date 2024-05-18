@@ -1,6 +1,6 @@
 # Project Roadmap: Browser-based AI-Generated Image Recognition
 
-## 5. Core Development Phases
+## 1. Core Development Phases
 ### Phase 1: Basic Frontend and UI
 - **Initial Layout**: Create the basic layout using HTML and CSS.
 - **User Interface**: Design and implement the UI with React.js or Vue.js.
