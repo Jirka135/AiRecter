@@ -82,7 +82,6 @@ def update_eta(total_prompts, start_time, processed_prompts, stop_event):
         
         time.sleep(1)
 
-
 if __name__ == '__main__':
     prompts = read_prompts_from_file('prompts.txt')
     if not prompts:
