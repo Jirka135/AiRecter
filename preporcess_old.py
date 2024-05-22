@@ -6,7 +6,13 @@ import tensorflow as tf
 from keras._tf_keras.keras.utils import Sequence
 from keras._tf_keras.keras.models import Sequential
 from keras._tf_keras.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+import shutil
+from tqdm import tqdm
 
+def create_subfolders(base_dir, subfolders):
+    for subfolder in subfolders:
+        folder_path = os.path.join(base_dir, subfolder)
+        os.makedirs(folder_path, exist_ok=True)
 
 def load_image_paths_and_labels(folder, label):
     image_paths = []
@@ -17,16 +23,35 @@ def load_image_paths_and_labels(folder, label):
         labels.append(label)
     return image_paths, labels
 
-ai_generated_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Fake'
-real_images_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Real'
+def rotate_and_save_images(image_paths, labels, save_dir, image_size=(128, 128)):
+    for img_path, label in tqdm(zip(image_paths, labels), total=len(image_paths)):
+        img = cv2.imread(img_path)
+        if img is not None:
+            img = cv2.resize(img, image_size)
+            for angle in [0, 90, 180, 270]:
+                rotated_img = cv2.rotate(img, angle)
+                label_dir = 'Fake' if label == 1 else 'Real'
+                save_path = os.path.join(save_dir, label_dir, f"{os.path.splitext(os.path.basename(img_path))[0]}_{angle}.png")
+                cv2.imwrite(save_path, rotated_img)
+        else:
+            print(f"Warning: Image at path {img_path} could not be read.")
 
-ai_image_paths, ai_labels = load_image_paths_and_labels(ai_generated_dir, 1)
-real_image_paths, real_labels = load_image_paths_and_labels(real_images_dir, 0)
+def preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.2):
+    ai_image_paths, ai_labels = load_image_paths_and_labels(ai_generated_dir, 1)
+    real_image_paths, real_labels = load_image_paths_and_labels(real_images_dir, 0)
 
-image_paths = ai_image_paths + real_image_paths
-labels = ai_labels + real_labels
+    image_paths = ai_image_paths + real_image_paths
+    labels = ai_labels + real_labels
 
-X_train_paths, X_test_paths, y_train, y_test = train_test_split(image_paths, labels, test_size=0.2, random_state=42)
+    X_train_paths, X_test_paths, y_train, y_test = train_test_split(image_paths, labels, test_size=test_size, random_state=42)
+
+    create_subfolders(train_dir, ['Fake', 'Real'])
+    create_subfolders(test_dir, ['Fake', 'Real'])
+
+    print("Processing training images...")
+    rotate_and_save_images(X_train_paths, y_train, train_dir)
+    print("Processing testing images...")
+    rotate_and_save_images(X_test_paths, y_test, test_dir)
 
 class ImageDataGenerator(Sequence):
     def __init__(self, image_paths, labels, batch_size=32, image_size=(128, 128)):
@@ -67,25 +92,54 @@ class ImageDataGenerator(Sequence):
         self.image_paths = [self.image_paths[i] for i in self.indexes]
         self.labels = [self.labels[i] for i in self.indexes]
 
-train_generator = ImageDataGenerator(X_train_paths, y_train, batch_size=32)
-test_generator = ImageDataGenerator(X_test_paths, y_test, batch_size=32)
+def load_preprocessed_data(train_dir, test_dir):
+    train_image_paths = []
+    train_labels = []
+    for label, subfolder in enumerate(['Fake', 'Real']):
+        folder_path = os.path.join(train_dir, subfolder)
+        for filename in os.listdir(folder_path):
+            train_image_paths.append(os.path.join(folder_path, filename))
+            train_labels.append(label)
 
-model = Sequential([
-    Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3)),
-    MaxPooling2D((2, 2)),
-    Conv2D(64, (3, 3), activation='relu'),
-    MaxPooling2D((2, 2)),
-    Flatten(),
-    Dense(128, activation='relu'),
-    Dropout(0.5),
-    Dense(1, activation='sigmoid')
-])
+    test_image_paths = []
+    test_labels = []
+    for label, subfolder in enumerate(['Fake', 'Real']):
+        folder_path = os.path.join(test_dir, subfolder)
+        for filename in os.listdir(folder_path):
+            test_image_paths.append(os.path.join(folder_path, filename))
+            test_labels.append(label)
 
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    return train_image_paths, train_labels, test_image_paths, test_labels
 
-model.fit(train_generator, epochs=10, validation_data=test_generator)
+if __name__ == '__main__':
+    ai_generated_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Fake'
+    real_images_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Real'
+    train_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Train'
+    test_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Test'
 
-loss, accuracy = model.evaluate(test_generator)
-print(f'Test Accuracy: {accuracy * 100:.2f}%')
+    preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.2)
 
-model.save('ai_image_recognition_model.h5')
+    X_train_paths, y_train, X_test_paths, y_test = load_preprocessed_data(train_dir, test_dir)
+
+    train_generator = ImageDataGenerator(X_train_paths, y_train, batch_size=32)
+    test_generator = ImageDataGenerator(X_test_paths, y_test, batch_size=32)
+
+    model = Sequential([
+        Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3)),
+        MaxPooling2D((2, 2)),
+        Conv2D(64, (3, 3), activation='relu'),
+        MaxPooling2D((2, 2)),
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid')
+    ])
+
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+    model.fit(train_generator, epochs=10, validation_data=test_generator)
+
+    loss, accuracy = model.evaluate(test_generator)
+    print(f'Test Accuracy: {accuracy * 100:.2f}%')
+
+    model.save('ai_image_recognition_model.h5')
