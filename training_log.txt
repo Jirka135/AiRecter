@@ -88,3 +88,4 @@ model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', 
 
 Epoch: 1, Accuracy: 93.79%, Model: C:\Users\Jirka\VScode\AirRect\AiRecter\Models\model_epoch_1.h5
 dlouhej shit
+Epoch: 1, Accuracy: 98.32%, Model: C:\Users\Jirka\VScode\AirRect\AiRecter\Models\model_epoch_1.h5
