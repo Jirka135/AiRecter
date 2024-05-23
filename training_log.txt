@@ -1,0 +1,90 @@
+Epoch: 1, Accuracy: 96.33%, Model: C:\Users\Jirka\VScode\AirRect\AiRecter\Models\model_epoch_1.h5
+model = Sequential([
+        Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3)),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+        Conv2D(32, (3, 3), activation='relu'),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+        Flatten(),
+        Dense(32, activation='relu'),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid')
+    ])
+    model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
+
+Epoch: 1, Accuracy: 94.78%, Model: C:\Users\Jirka\VScode\AirRect\AiRecter\Models\model_epoch_1.h5
+model = Sequential([
+        Conv2D(64, (3, 3), activation='relu', input_shape=(128, 128, 3)),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+        Conv2D(32, (3, 3), activation='relu'),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+        Flatten(),
+        Dense(32, activation='relu'),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid')
+    ])
+    model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
+Epoch: 1, Accuracy: 96.52%, Model: C:\Users\Jirka\VScode\AirRect\AiRecter\Models\model_epoch_1.h5
+
+model = Sequential([
+        Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3)),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+        Conv2D(64, (3, 3), activation='relu'),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+        Flatten(),
+        Dense(32, activation='relu'),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid')
+    ])
+    model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
+
+
+Epoch: 1, Accuracy: 95.14%, Model: C:\Users\Jirka\VScode\AirRect\AiRecter\Models\model_epoch_1.h5
+    model = Sequential([
+        Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3)),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+        Conv2D(64, (3, 3), activation='relu'),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+        Flatten(),
+        Dense(64, activation='relu'),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid')
+    ])
+    model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
+
+Epoch: 1, Accuracy: 97.64%, Model: C:\Users\Jirka\VScode\AirRect\AiRecter\Models\model_epoch_1.h5
+model = Sequential([
+    Conv2D(64, (3, 3), activation='relu', input_shape=(128, 128, 3)),
+    BatchNormalization(),
+    MaxPooling2D((2, 2)),
+    Conv2D(128, (3, 3), activation='relu'),
+    BatchNormalization(),
+    MaxPooling2D((2, 2)),
+    Conv2D(256, (3, 3), activation='relu'),
+    BatchNormalization(),
+    MaxPooling2D((2, 2)),
+    Conv2D(512, (3, 3), activation='relu'),
+    BatchNormalization(),
+    MaxPooling2D((2, 2)),
+    Flatten(),
+    Dense(512, activation='relu'),
+    Dropout(0.5),
+    Dense(256, activation='relu'),
+    Dropout(0.5),
+    Dense(128, activation='relu'),
+    Dropout(0.5),
+    Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
+
+
+Epoch: 1, Accuracy: 93.79%, Model: C:\Users\Jirka\VScode\AirRect\AiRecter\Models\model_epoch_1.h5
+dlouhej shit

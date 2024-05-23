@@ -104,6 +104,7 @@ ipython_config.py
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
 Images/
+old/
 # Celery stuff
 celerybeat-schedule
 celerybeat.pid
@@ -151,3 +152,4 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 secret.py
+Models/
