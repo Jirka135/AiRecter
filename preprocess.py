@@ -68,7 +68,7 @@ def load_preprocessed_data(train_dir, test_dir):
 
     return train_image_paths, train_labels, test_image_paths, test_labels
 
-class ImageDataGenerator(Sequence):
+class ImageGenerator(Sequence):
     def __init__(self, image_paths, labels, batch_size=32, image_size=(128, 128)):
         self.image_paths = image_paths
         self.labels = labels
