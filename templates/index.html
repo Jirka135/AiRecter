@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Training and Image Generation</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Training and Image Generation</h1>
+        <div class="alert" role="alert" id="alert-message" style="display: none;"></div>
+        <button class="btn btn-primary" onclick="startPreprocessing()">Preprocess Images</button>
+        <button class="btn btn-primary" onclick="startTraining()">Train AI</button>
+        <button class="btn btn-primary" onclick="startGenerating()">Generate Images</button>
+
+        <div class="progress mt-3" style="height: 30px;">
+            <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;">0%</div>
+        </div>
+    </div>
+
+    <script>
+        function startPreprocessing() {
+            $.post("/preprocess");
+        }
+
+        function startTraining() {
+            $.post("/train");
+        }
+
+        function startGenerating() {
+            $.post("/generate");
+        }
+
+        if (!!window.EventSource) {
+            var source = new EventSource('/stream');
+
+            source.addEventListener('preprocess', function(event) {
+                var data = JSON.parse(event.data);
+                updateProgressBar(data.progress, data.message);
+            }, false);
+
+            source.addEventListener('train', function(event) {
+                var data = JSON.parse(event.data);
+                updateProgressBar(data.progress, data.message);
+            }, false);
+
+            source.addEventListener('generate', function(event) {
+                var data = JSON.parse(event.data);
+                updateProgressBar(data.progress, data.message);
+            }, false);
+        }
+
+        function updateProgressBar(progress, message) {
+            $('#progress-bar').css('width', progress + '%').text(progress.toFixed(2) + '%');
+            $('#alert-message').removeClass().addClass('alert alert-info').text(message).show();
+        }
+    </script>
+</body>
+</html>

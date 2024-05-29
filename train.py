@@ -35,7 +35,7 @@ class ModelCheckpointAndLog(Callback):
             f.write(f"Epoch: {epoch + 1}, Accuracy: {val_accuracy * 100:.2f}%, Model: {model_filename}\n")
 
 
-def train_ai():
+def train_ai(sse):
     train_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Train'
     test_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Test'
     model_save_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Models'
@@ -84,16 +84,21 @@ def train_ai():
 
     checkpoint_and_log_callback = ModelCheckpointAndLog(model_save_dir, log_file, test_generator)
 
-    model.fit(train_generator, epochs=25, validation_data=test_generator, callbacks=[checkpoint_and_log_callback])
+    for epoch in range(25):
+        model.fit(train_generator, epochs=1, validation_data=test_generator, callbacks=[checkpoint_and_log_callback])
+        sse.publish({"progress": (epoch + 1) / 25 * 100, "message": f"Training epoch {epoch + 1} of 25"}, type='train')
 
     for layer in base_model.layers:
         layer.trainable = True
 
     model.compile(optimizer=Adam(learning_rate=0.00001), loss='binary_crossentropy', metrics=['accuracy'])
 
-    model.fit(train_generator, epochs=25, validation_data=test_generator, callbacks=[checkpoint_and_log_callback])
+    for epoch in range(25):
+        model.fit(train_generator, epochs=1, validation_data=test_generator, callbacks=[checkpoint_and_log_callback])
+        sse.publish({"progress": (epoch + 1 + 25) / 50 * 100, "message": f"Fine-tuning epoch {epoch + 1} of 25"}, type='train')
 
     loss, accuracy = model.evaluate(test_generator)
     print(f'Test Accuracy: {accuracy * 100:.2f}%')
 
     model.save(os.path.join(model_save_dir, 'ai_image_recognition_model_final.h5'))
+    sse.publish({"progress": 100, "message": "Training completed!"}, type='train')

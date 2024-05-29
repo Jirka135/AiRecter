@@ -21,9 +21,9 @@ def load_image_paths_and_labels(folder, label):
         labels.append(label)
     return image_paths, labels
 
-def rotate_and_save_images(image_paths, labels, save_dir, image_size=(128, 128)):
+def rotate_and_save_images(image_paths, labels, save_dir, image_size=(128, 128), sse=None):
     """Rotates images and saves them in specified directories."""
-    for img_path, label in tqdm(zip(image_paths, labels), total=len(image_paths)):
+    for i, (img_path, label) in enumerate(zip(image_paths, labels)):
         img = cv2.imread(img_path)
         if img is not None:
             img = cv2.resize(img, image_size)
@@ -42,8 +42,11 @@ def rotate_and_save_images(image_paths, labels, save_dir, image_size=(128, 128))
                 cv2.imwrite(save_path, rotated_img)
         else:
             print(f"Warning: Image at path {img_path} could not be read.")
+        
+        if sse:
+            sse.publish({"progress": (i + 1) / len(image_paths) * 100, "message": f"Processing image {i + 1} of {len(image_paths)}"}, type='preprocess')
 
-def preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.2):
+def preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.2, sse=None):
     """Preprocesses images by loading, splitting, rotating, and saving them."""
     ai_image_paths, ai_labels = load_image_paths_and_labels(ai_generated_dir, 1)
     real_image_paths, real_labels = load_image_paths_and_labels(real_images_dir, 0)
@@ -57,9 +60,12 @@ def preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, te
     create_subfolders(test_dir, ['Fake', 'Real'])
 
     print("Processing training images...")
-    rotate_and_save_images(X_train_paths, y_train, train_dir)
+    rotate_and_save_images(X_train_paths, y_train, train_dir, sse=sse)
     print("Processing testing images...")
-    rotate_and_save_images(X_test_paths, y_test, test_dir)
+    rotate_and_save_images(X_test_paths, y_test, test_dir, sse=sse)
+
+    if sse:
+        sse.publish({"progress": 100, "message": "Preprocessing completed!"}, type='preprocess')
 
 def load_preprocessed_data(train_dir, test_dir):
     """Loads preprocessed images from the train and test directories."""
