@@ -6,11 +6,13 @@ from tqdm import tqdm
 from keras.utils import Sequence
 
 def create_subfolders(base_dir, subfolders):
+    """Creates subdirectories within a base directory."""
     for subfolder in subfolders:
         folder_path = os.path.join(base_dir, subfolder)
         os.makedirs(folder_path, exist_ok=True)
 
 def load_image_paths_and_labels(folder, label):
+    """Loads image file paths and assigns the given label to each image."""
     image_paths = []
     labels = []
     for filename in os.listdir(folder):
@@ -20,12 +22,21 @@ def load_image_paths_and_labels(folder, label):
     return image_paths, labels
 
 def rotate_and_save_images(image_paths, labels, save_dir, image_size=(128, 128)):
+    """Rotates images and saves them in specified directories."""
     for img_path, label in tqdm(zip(image_paths, labels), total=len(image_paths)):
         img = cv2.imread(img_path)
         if img is not None:
             img = cv2.resize(img, image_size)
             for angle in [0, 90, 180, 270]:
-                rotated_img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE if angle == 90 else (cv2.ROTATE_180 if angle == 180 else (cv2.ROTATE_90_COUNTERCLOCKWISE if angle == 270 else None)))
+                if angle == 90:
+                    rotated_img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+                elif angle == 180:
+                    rotated_img = cv2.rotate(img, cv2.ROTATE_180)
+                elif angle == 270:
+                    rotated_img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                else:
+                    rotated_img = img
+                
                 label_dir = 'Fake' if label == 1 else 'Real'
                 save_path = os.path.join(save_dir, label_dir, f"{os.path.splitext(os.path.basename(img_path))[0]}_{angle}.png")
                 cv2.imwrite(save_path, rotated_img)
@@ -33,6 +44,7 @@ def rotate_and_save_images(image_paths, labels, save_dir, image_size=(128, 128))
             print(f"Warning: Image at path {img_path} could not be read.")
 
 def preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.2):
+    """Preprocesses images by loading, splitting, rotating, and saving them."""
     ai_image_paths, ai_labels = load_image_paths_and_labels(ai_generated_dir, 1)
     real_image_paths, real_labels = load_image_paths_and_labels(real_images_dir, 0)
 
@@ -50,6 +62,7 @@ def preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, te
     rotate_and_save_images(X_test_paths, y_test, test_dir)
 
 def load_preprocessed_data(train_dir, test_dir):
+    """Loads preprocessed images from the train and test directories."""
     train_image_paths = []
     train_labels = []
     for label, subfolder in enumerate(['Fake', 'Real']):
@@ -69,7 +82,8 @@ def load_preprocessed_data(train_dir, test_dir):
     return train_image_paths, train_labels, test_image_paths, test_labels
 
 class ImageGenerator(Sequence):
-    def __init__(self, image_paths, labels, batch_size=32, image_size=(128, 128)):
+    """Custom data generator for loading images in batches during training."""
+    def __init__(self, image_paths, labels, batch_size=32, image_size=(512, 512)):
         self.image_paths = image_paths
         self.labels = labels
         self.batch_size = batch_size
@@ -93,7 +107,6 @@ class ImageGenerator(Sequence):
             else:
                 print(f"Warning: Image at path {img_path} could not be read.")
         
-        # Ensure consistent batch size
         if len(images) != self.batch_size:
             print(f"Warning: Batch size mismatch. Expected {self.batch_size}, got {len(images)}. Skipping batch.")
             return self.__getitem__((index + 1) % self.__len__())
