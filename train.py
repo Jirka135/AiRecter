@@ -1,19 +1,19 @@
 import os
 from keras.models import Model
-from keras.layers import Conv2D, MaxPooling2D, GlobalAveragePooling2D, Dense, Dropout, BatchNormalization
+from keras.layers import GlobalAveragePooling2D, Dense, Dropout, BatchNormalization
 from keras.optimizers import Adam
-from keras.callbacks import Callback
+from keras.callbacks import Callback, LearningRateScheduler, ModelCheckpoint, TensorBoard
 from keras.applications import ResNet50
 from keras.regularizers import l2
 from preprocess import load_preprocessed_data, ImageGenerator
 
-
 class ModelCheckpointAndLog(Callback):
-    def __init__(self, model_save_dir, log_file, validation_data, **kwargs):
+    def __init__(self, model_save_dir, log_file, validation_data, sse, **kwargs):
         super().__init__(**kwargs)
         self.model_save_dir = model_save_dir
         self.log_file = log_file
         self.validation_data = validation_data
+        self.sse = sse
         self.best_val_loss = float('inf')
 
     def on_epoch_end(self, epoch, logs=None):
@@ -34,39 +34,28 @@ class ModelCheckpointAndLog(Callback):
         with open(self.log_file, 'a') as f:
             f.write(f"Epoch: {epoch + 1}, Accuracy: {val_accuracy * 100:.2f}%, Model: {model_filename}\n")
 
+        # Send SSE update
+        self.sse.publish({"progress": (epoch + 1) / 50 * 100, "message": f"Training epoch {epoch + 1} of 50"}, type='train')
 
 def train_ai(sse):
-    train_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Train'
-    test_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Test'
+    train_dir = 'D:\\AIimages\\Train'
+    test_dir = 'D:\\AIimages\\Test'
     model_save_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Models'
     log_file = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\training_log.txt'
+    log_dir = 'logs'
     
     os.makedirs(model_save_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
 
-    # Load preprocessed data
-    X_train_paths, y_train, X_test_paths, y_test = load_preprocessed_data(train_dir, test_dir)
+    # Load preprocessed data into memory
+    X_train, y_train, X_test, y_test = load_preprocessed_data(train_dir, test_dir)
 
-    train_generator = ImageGenerator(X_train_paths, y_train, batch_size=8)
-    test_generator = ImageGenerator(X_test_paths, y_test, batch_size=8)
+    train_generator = ImageGenerator(X_train, y_train, batch_size=8)
+    test_generator = ImageGenerator(X_test, y_test, batch_size=8)
 
     base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(512, 512, 3))
     x = base_model.output
-    x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
-    x = BatchNormalization()(x)
-    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
-    x = BatchNormalization()(x)
-    x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
-    x = BatchNormalization()(x)
-    x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
-    x = BatchNormalization()(x)
-    x = MaxPooling2D((2, 2))(x)
-    x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
-    x = MaxPooling2D((2, 2))(x)
-    x = BatchNormalization()(x)
     x = GlobalAveragePooling2D()(x)
-    x = Dense(1024, activation='relu', kernel_regularizer=l2(0.01))(x)
-    x = BatchNormalization()(x)
-    x = Dropout(0.5)(x)
     x = Dense(512, activation='relu', kernel_regularizer=l2(0.01))(x)
     x = BatchNormalization()(x)
     x = Dropout(0.5)(x)
@@ -82,20 +71,36 @@ def train_ai(sse):
 
     model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
 
-    checkpoint_and_log_callback = ModelCheckpointAndLog(model_save_dir, log_file, test_generator)
+    # Learning rate scheduler
+    def scheduler(epoch, lr):
+        if epoch < 10:
+            return lr
+        else:
+            return lr * 0.1
 
-    for epoch in range(25):
-        model.fit(train_generator, epochs=1, validation_data=test_generator, callbacks=[checkpoint_and_log_callback])
-        sse.publish({"progress": (epoch + 1) / 25 * 100, "message": f"Training epoch {epoch + 1} of 25"}, type='train')
+    lr_scheduler = LearningRateScheduler(scheduler)
+    tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
+    checkpoint_callback = ModelCheckpoint(filepath=os.path.join(model_save_dir, 'model_epoch_{epoch:02d}.h5'), save_best_only=True)
+    checkpoint_and_log_callback = ModelCheckpointAndLog(model_save_dir, log_file, test_generator, sse)
+
+    model.fit(
+        train_generator,
+        epochs=25,
+        validation_data=test_generator,
+        callbacks=[checkpoint_callback, lr_scheduler, tensorboard_callback, checkpoint_and_log_callback]
+    )
 
     for layer in base_model.layers:
         layer.trainable = True
 
     model.compile(optimizer=Adam(learning_rate=0.00001), loss='binary_crossentropy', metrics=['accuracy'])
 
-    for epoch in range(25):
-        model.fit(train_generator, epochs=1, validation_data=test_generator, callbacks=[checkpoint_and_log_callback])
-        sse.publish({"progress": (epoch + 1 + 25) / 50 * 100, "message": f"Fine-tuning epoch {epoch + 1} of 25"}, type='train')
+    model.fit(
+        train_generator,
+        epochs=25,
+        validation_data=test_generator,
+        callbacks=[checkpoint_callback, lr_scheduler, tensorboard_callback, checkpoint_and_log_callback]
+    )
 
     loss, accuracy = model.evaluate(test_generator)
     print(f'Test Accuracy: {accuracy * 100:.2f}%')

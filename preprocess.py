@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 from keras.utils import Sequence
+from multiprocessing import Pool, cpu_count
 
 def create_subfolders(base_dir, subfolders):
     """Creates subdirectories within a base directory."""
@@ -21,32 +22,44 @@ def load_image_paths_and_labels(folder, label):
         labels.append(label)
     return image_paths, labels
 
-def rotate_and_save_images(image_paths, labels, save_dir, image_size=(128, 128), sse=None):
-    """Rotates images and saves them in specified directories."""
-    for i, (img_path, label) in enumerate(zip(image_paths, labels)):
-        img = cv2.imread(img_path)
-        if img is not None:
-            img = cv2.resize(img, image_size)
-            for angle in [0, 90, 180, 270]:
-                if angle == 90:
-                    rotated_img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
-                elif angle == 180:
-                    rotated_img = cv2.rotate(img, cv2.ROTATE_180)
-                elif angle == 270:
-                    rotated_img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
-                else:
-                    rotated_img = img
-                
-                label_dir = 'Fake' if label == 1 else 'Real'
-                save_path = os.path.join(save_dir, label_dir, f"{os.path.splitext(os.path.basename(img_path))[0]}_{angle}.png")
-                cv2.imwrite(save_path, rotated_img)
-        else:
-            print(f"Warning: Image at path {img_path} could not be read.")
-        
-        if sse:
-            sse.publish({"progress": (i + 1) / len(image_paths) * 100, "message": f"Processing image {i + 1} of {len(image_paths)}"}, type='preprocess')
+def process_image(args):
+    """Processes a single image: loads, resizes, rotates, and saves it."""
+    img_path, label, save_dir, image_size = args
+    img = cv2.imread(img_path)
+    if img is not None:
+        img = cv2.resize(img, image_size)
+        for angle in [0, 90, 180, 270]:
+            if angle == 90:
+                rotated_img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+            elif angle == 180:
+                rotated_img = cv2.rotate(img, cv2.ROTATE_180)
+            elif angle == 270:
+                rotated_img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            else:
+                rotated_img = img
 
-def preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.2, sse=None):
+            label_dir = 'Fake' if label == 1 else 'Real'
+            save_path = os.path.join(save_dir, label_dir, f"{os.path.splitext(os.path.basename(img_path))[0]}_{angle}.png")
+            cv2.imwrite(save_path, rotated_img)
+    else:
+        print(f"Warning: Image at path {img_path} could not be read.")
+
+def rotate_and_save_images(image_paths, labels, save_dir, image_size=(512, 512), sse=None):
+    """Rotates images and saves them in specified directories using multiprocessing."""
+    pool = Pool(cpu_count())
+    total_images = len(image_paths)
+    
+    # Prepare the arguments for each image processing
+    args = [(image_paths[i], labels[i], save_dir, image_size) for i in range(total_images)]
+    
+    for i, _ in tqdm(enumerate(pool.imap_unordered(process_image, args), 1), total=total_images):
+        if sse:
+            sse.publish({"progress": (i / total_images) * 100, "message": f"Processing image {i} of {total_images}"}, type='preprocess')
+    
+    pool.close()
+    pool.join()
+
+def preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.01, sse=None):
     """Preprocesses images by loading, splitting, rotating, and saving them."""
     ai_image_paths, ai_labels = load_image_paths_and_labels(ai_generated_dir, 1)
     real_image_paths, real_labels = load_image_paths_and_labels(real_images_dir, 0)

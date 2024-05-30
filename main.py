@@ -31,10 +31,10 @@ def generate_images():
         print("\nAll prompts processed.")
 
 def preprocess_only():
-    ai_generated_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Fake'
-    real_images_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Real'
-    train_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Train'
-    test_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Test'
+    ai_generated_dir = 'D:\\AIimages\\Fake'
+    real_images_dir = 'D:\\AIimages\\Real'
+    train_dir = 'D:\\AIimages\\Train'
+    test_dir = 'D:\\AIimages\\Test'
 
     # Preprocess images without training
     preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.2)

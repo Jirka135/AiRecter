@@ -1,66 +1,131 @@
 import os
 import time
 import threading
-from flask import Flask, render_template, request, redirect, url_for, flash, Response
+import subprocess
+import redis
+from flask import Flask, render_template, redirect, url_for, jsonify, send_from_directory
 from flask_sse import sse
-from redis import Redis, ConnectionError
+from preprocess import preprocess_images
 from train import train_ai
-from preprocess import preprocess_images, load_preprocessed_data
-from image_generation import call_txt2img_api, read_prompts_from_file
+from image_generation import call_txt2img_api, read_prompts_from_file, update_eta
+import matplotlib.pyplot as plt
+import numpy as np
+from keras.models import load_model
+from keras.callbacks import TensorBoard, ModelCheckpoint
+from keras.utils import plot_model
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'
 app.config["REDIS_URL"] = "redis://192.168.0.125:6379"
 app.register_blueprint(sse, url_prefix='/stream')
 
-def check_redis_connection():
+# Define paths for logging and model checkpoints
+os.makedirs(log_dir, exist_ok=True)
+os.makedirs(model_save_dir, exist_ok=True)
+
+def is_redis_available():
     try:
-        redis = Redis.from_url(app.config["REDIS_URL"])
-        redis.ping()
+        r = redis.StrictRedis.from_url(app.config["REDIS_URL"])
+        r.ping()
         return True
-    except ConnectionError:
+    except redis.ConnectionError:
         return False
 
 @app.route('/')
-def home():
-    return render_template('index.html')
+def index():
+    redis_status = is_redis_available()
+    return render_template('index.html', redis_status=redis_status)
 
-@app.route('/train', methods=['POST'])
-def train():
-    if not check_redis_connection():
-        flash('Redis server is not running. Please start the Redis server and try again.', 'danger')
-        return redirect(url_for('home'))
-
-    threading.Thread(target=train_ai_with_feedback).start()
-    flash('Training started', 'success')
-    return redirect(url_for('home'))
+@app.route('/check_redis')
+def check_redis():
+    redis_status = is_redis_available()
+    return jsonify(redis_status=redis_status)
 
 @app.route('/preprocess', methods=['POST'])
 def preprocess():
-    if not check_redis_connection():
-        flash('Redis server is not running. Please start the Redis server and try again.', 'danger')
-        return redirect(url_for('home'))
+    def preprocess_images_with_feedback():
+        with app.app_context():
+            ai_generated_dir = 'D:\\AIimages\\Fake'
+            real_images_dir = 'D:\\AIimages\\Real'
+            train_dir = 'D:\\AIimages\\Train'
+            test_dir = 'D:\\AIimages\\Test'
+            preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.2, sse=sse)
 
-    ai_generated_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Fake'
-    real_images_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Real'
-    train_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Train'
-    test_dir = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Images\\Test'
+    threading.Thread(target=preprocess_images_with_feedback).start()
+    return redirect(url_for('index'))
 
-    threading.Thread(target=preprocess_images_with_feedback, args=(ai_generated_dir, real_images_dir, train_dir, test_dir)).start()
-    flash('Preprocessing started', 'success')
-    return redirect(url_for('home'))
+@app.route('/train', methods=['POST'])
+def train():
+    threading.Thread(target=lambda: train_ai(sse)).start()
+    return redirect(url_for('index'))
 
-@app.route('/stream')
-def stream():
-    return Response(sse.stream(), content_type='text/event-stream')
+@app.route('/generate', methods=['POST'])
+def generate():
+    def generate_images():
+        with app.app_context():
+            prompt_file = 'prompts.txt'
+            prompts = read_prompts_from_file(prompt_file)
+            if not prompts:
+                print("No prompts found in the file. Please add prompts to 'prompts.txt' and run the script again.")
+            else:
+                negative_prompt = "low quality, blurry, bad anatomy, disfigured, deformed, extra limbs, extra fingers, extra arms, extra legs, poorly drawn, poorly rendered, bad proportions, unnatural body, unnatural lighting, watermark, text, logo, nsfw, low resolution, grainy, overexposed, underexposed, distorted, cropped, jpeg artifacts, watermark, cartoon, sketch, 3d render, anime, unrealistic, bad art, ugly, messy, cluttered, low detail, noise, overprocessed"
+                total_prompts = len(prompts)
+                start_time = time.time()
+                processed_prompts = [0]
+                stop_event = threading.Event()
 
-def preprocess_images_with_feedback(ai_generated_dir, real_images_dir, train_dir, test_dir):
-    with app.app_context():
-        preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.2, sse=sse)
+                # Start the ETA update thread
+                eta_thread = threading.Thread(target=update_eta, args=(total_prompts, start_time, processed_prompts, stop_event))
+                eta_thread.start()
 
-def train_ai_with_feedback():
-    with app.app_context():
-        train_ai(sse=sse)
+                try:
+                    for prompt in prompts:
+                        call_txt2img_api(prompt, negative_prompt)
+                        processed_prompts[0] += 1  # Increment the count of processed prompts
+                finally:
+                    stop_event.set()
+                    eta_thread.join()
+                print("\nAll prompts processed.")
+
+    threading.Thread(target=generate_images).start()
+    return redirect(url_for('index'))
+
+@app.route('/tensorboard')
+def launch_tensorboard():
+    subprocess.Popen(['tensorboard', '--logdir=logs', '--port=6006'])
+    return redirect("http://localhost:6006", code=302)
+
+@app.route('/model_architecture')
+def model_architecture():
+    try:
+        model_architecture_path = os.path.join('model_checkpoints', 'model_architecture.png')
+        if not os.path.exists(model_architecture_path):
+            raise FileNotFoundError(f"Model architecture image not found at path: {model_architecture_path}")
+        return send_from_directory('model_checkpoints', 'model_architecture.png')
+    except Exception as e:
+        return str(e), 404
+
+@app.route('/weights')
+def visualize_weights():
+    try:
+        model_path = os.path.join('model_checkpoints', 'ai_image_recognition_model_final.h5')
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model file not found at path: {model_path}")
+
+        model = load_model(model_path)
+        layer = model.layers[1]  # Adjusted to use the correct layer index
+        weights = layer.get_weights()[0]
+
+        fig, ax = plt.subplots()
+        cax = ax.matshow(weights, cmap='viridis')
+        plt.title('Layer 1 Weights')
+        plt.colorbar(cax)
+
+        img_path = 'static/weights.png'
+        os.makedirs('static', exist_ok=True)
+        plt.savefig(img_path)
+        return send_from_directory('static', 'weights.png')
+    except Exception as e:
+        return str(e), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
