@@ -4,7 +4,6 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 from keras.utils import Sequence
-from multiprocessing import Pool, cpu_count
 
 def create_subfolders(base_dir, subfolders):
     """Creates subdirectories within a base directory."""
@@ -23,12 +22,13 @@ def load_image_paths_and_labels(folder, label):
     return image_paths, labels
 
 def process_image(args):
-    """Processes a single image: loads, resizes, rotates, and saves it."""
-    img_path, label, save_dir, image_size = args
+    """Processes a single image: loads, resizes, optionally rotates, and saves it."""
+    img_path, label, save_dir, image_size, rotate = args
     img = cv2.imread(img_path)
     if img is not None:
         img = cv2.resize(img, image_size)
-        for angle in [0, 90, 180, 270]:
+        angles = [0, 90, 180, 270] if rotate else [0]
+        for angle in angles:
             if angle == 90:
                 rotated_img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
             elif angle == 180:
@@ -44,23 +44,31 @@ def process_image(args):
     else:
         print(f"Warning: Image at path {img_path} could not be read.")
 
-def rotate_and_save_images(image_paths, labels, save_dir, image_size=(512, 512), sse=None):
-    """Rotates images and saves them in specified directories using multiprocessing."""
-    pool = Pool(cpu_count())
-    total_images = len(image_paths)
-    
-    # Prepare the arguments for each image processing
-    args = [(image_paths[i], labels[i], save_dir, image_size) for i in range(total_images)]
-    
-    for i, _ in tqdm(enumerate(pool.imap_unordered(process_image, args), 1), total=total_images):
-        if sse:
-            sse.publish({"progress": (i / total_images) * 100, "message": f"Processing image {i} of {total_images}"}, type='preprocess')
-    
-    pool.close()
-    pool.join()
+def rotate_and_save_images(image_paths, labels, save_dir, image_size=(512, 512), rotate=True):
+    """Rotates images (if rotate is True) and saves them in specified directories."""
+    for img_path, label in tqdm(zip(image_paths, labels), total=len(image_paths)):
+        img = cv2.imread(img_path)
+        if img is not None:
+            img = cv2.resize(img, image_size)
+            angles = [0, 90, 180, 270] if rotate else [0]
+            for angle in angles:
+                if angle == 90:
+                    rotated_img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+                elif angle == 180:
+                    rotated_img = cv2.rotate(img, cv2.ROTATE_180)
+                elif angle == 270:
+                    rotated_img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                else:
+                    rotated_img = img
+                
+                label_dir = 'Fake' if label == 1 else 'Real'
+                save_path = os.path.join(save_dir, label_dir, f"{os.path.splitext(os.path.basename(img_path))[0]}_{angle}.png")
+                cv2.imwrite(save_path, rotated_img)
+        else:
+            print(f"Warning: Image at path {img_path} could not be read.")
 
-def preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.01, sse=None):
-    """Preprocesses images by loading, splitting, rotating, and saving them."""
+def preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.2, rotate=True):
+    """Preprocesses images by loading, splitting, optionally rotating, and saving them."""
     ai_image_paths, ai_labels = load_image_paths_and_labels(ai_generated_dir, 1)
     real_image_paths, real_labels = load_image_paths_and_labels(real_images_dir, 0)
 
@@ -73,12 +81,9 @@ def preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, te
     create_subfolders(test_dir, ['Fake', 'Real'])
 
     print("Processing training images...")
-    rotate_and_save_images(X_train_paths, y_train, train_dir, sse=sse)
+    rotate_and_save_images(X_train_paths, y_train, train_dir, rotate=rotate)
     print("Processing testing images...")
-    rotate_and_save_images(X_test_paths, y_test, test_dir, sse=sse)
-
-    if sse:
-        sse.publish({"progress": 100, "message": "Preprocessing completed!"}, type='preprocess')
+    rotate_and_save_images(X_test_paths, y_test, test_dir, rotate=rotate)
 
 def load_preprocessed_data(train_dir, test_dir):
     """Loads preprocessed images from the train and test directories."""

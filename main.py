@@ -31,13 +31,13 @@ def generate_images():
         print("\nAll prompts processed.")
 
 def preprocess_only():
-    ai_generated_dir = 'D:\\AIimages\\Fake'
-    real_images_dir = 'D:\\AIimages\\Real'
-    train_dir = 'D:\\AIimages\\Train'
-    test_dir = 'D:\\AIimages\\Test'
+    ai_generated_dir = '\\\\192.168.0.125\\Hvezda\\AIrect\\Fake'
+    real_images_dir = '\\\\192.168.0.125\\Hvezda\\AIrect\\Real'
+    train_dir = '\\\\192.168.0.125\\Hvezda\\AIrect\\Test'
+    test_dir = '\\\\192.168.0.125\\Hvezda\\AIrect\\Train'
 
     # Preprocess images without training
-    preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.2)
+    preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.001,rotate = True)
     print("Preprocessing completed.")
 
 def main():
