@@ -1,7 +1,7 @@
 import os
 import time
 import threading
-from preprocess import preprocess_images, load_preprocessed_data, ImageGenerator
+from preprocess import preprocess_images
 from train import train_ai
 from image_generation import call_txt2img_api, read_prompts_from_file, update_eta
 
@@ -33,11 +33,11 @@ def generate_images():
 def preprocess_only():
     ai_generated_dir = '\\\\192.168.0.125\\Hvezda\\AIrect\\Fake'
     real_images_dir = '\\\\192.168.0.125\\Hvezda\\AIrect\\Real'
-    train_dir = '\\\\192.168.0.125\\Hvezda\\AIrect\\Test'
-    test_dir = '\\\\192.168.0.125\\Hvezda\\AIrect\\Train'
+    train_dir = '\\\\192.168.0.125\\Hvezda\\AIrect\\Train'
+    test_dir = '\\\\192.168.0.125\\Hvezda\\AIrect\\Test'
 
     # Preprocess images without training
-    preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.001,rotate = True)
+    preprocess_images(ai_generated_dir, real_images_dir, train_dir, test_dir, test_size=0.001, rotate=True)
     print("Preprocessing completed.")
 
 def main():

@@ -12,7 +12,7 @@ app.config['UPLOAD_FOLDER'] = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\uppl
 app.config['MAX_CONTENT_PATH'] = 1024 * 1024  # 1MB limit
 
 # Load your trained model
-MODEL_PATH = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Models\\ai_image_recognition_model_final.h5'
+MODEL_PATH = 'C:\\Users\\Jirka\\VScode\\AirRect\\AiRecter\\Models\\best_model.h5'
 model = load_model(MODEL_PATH)
 
 def preprocess_image(image_path):
