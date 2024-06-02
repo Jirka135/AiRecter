@@ -41,9 +41,17 @@ def index():
             # Preprocess the image and predict
             image = preprocess_image(file_path)
             prediction = model.predict(image)
-            is_ai = prediction[0][0] > 0.5
+            confidence = prediction[0][0]
 
-            result = "AI Generated" if is_ai else "Real Image"
+            # Set a confidence threshold
+            confidence_threshold = 0.75
+            if confidence > 0.5 + (confidence_threshold / 2):
+                result = f"AI Generated with {confidence * 100:.2f}% confidence"
+            elif confidence < 0.5 - (confidence_threshold / 2):
+                result = f"Real Image with {(1 - confidence) * 100:.2f}% confidence"
+            else:
+                result = "The model is not confident enough to make a prediction"
+
             flash(result)
             return redirect(url_for('index'))
 
