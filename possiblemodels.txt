@@ -1,0 +1,15 @@
+Xception 9797/9797 [==============================] - 1019s 104ms/step - loss: 0.4777 - accuracy: 0.7552 - val_loss: 0.3900 - val_accuracy: 0.8250 - lr: 0.0010
+NASNet 9797/9797 [==============================] - 2857s 291ms/step - loss: 0.6265 - accuracy: 0.6477 - val_loss: 0.5217 - val_accuracy: 0.7250 - lr: 0.0010
+ResNet50 9797/9797 [==============================] - 1106s 113ms/step - loss: 0.2911 - accuracy: 0.8425 - val_loss: 0.1241 - val_accuracy: 0.9625 - lr: 0.0010
+ResNetRS420 9797/9797 [==============================] - 6954s 707ms/step - loss: 0.2874 - accuracy: 0.8432 - val_loss: 0.1980 - val_accuracy: 0.9500 - lr: 0.0010
+ResNet50V2 9797/9797 [==============================] - 804s 81ms/step - loss: 0.5000 - accuracy: 0.7456 - val_loss: 0.5070 - val_accuracy: 0.7625 - lr: 0.0010
+DenseNet121 9797/9797 [==============================] - 996s 101ms/step - loss: 0.3663 - accuracy: 0.8113 - val_loss: 0.1267 - val_accuracy: 0.9563 - lr: 0.0010
+DenseNet169 9797/9797 [==============================] - 1174s 119ms/step - loss: 0.3740 - accuracy: 0.8096 - val_loss: 0.3039 - val_accuracy: 0.8875 - lr: 0.0010
+DenseNet201  9797/9797 [==============================] - 1723s 175ms/step - loss: 0.3618 - accuracy: 0.8113 - val_loss: 0.3412 - val_accuracy: 0.8750 - lr: 0.0010
+VGG19 9797/9797 [==============================] - 1656s 168ms/step - loss: 0.3438 - accuracy: 0.8207 - val_loss: 0.0926 - val_accuracy: 0.9438 - lr: 0.0010
+VGG16 9797/9797 [==============================] - 1654s 168ms/step - loss: 0.3329 - accuracy: 0.8260 - val_loss: 0.1927 - val_accuracy: 0.9125 - lr: 0.0010
+ConvNeXtXLarge 9797/9797 [==============================] - 12688s 1s/step - loss: 0.2257 - accuracy: 0.8668 - val_loss: 0.0040 - val_accuracy: 1.0000 - lr: 0.0010
+EfficientNetV2L 9797/9797 [==============================] - 3429s 348ms/step - loss: 0.2589 - accuracy: 0.8533 - val_loss: 0.0240 - val_accuracy: 1.0000 - lr: 0.0010
+EfficientNetV2S 9797/9797 [==============================] - 1167s 118ms/step - loss: 0.2711 - accuracy: 0.8506 - val_loss: 0.0650 - val_accuracy: 0.9750 - lr: 0.0010
+InceptionV3 9797/9797 [==============================] - 807s 82ms/step - loss: 0.5576 - accuracy: 0.7036 - val_loss: 0.4756 - val_accuracy: 0.7937 - lr: 0.0010
+NasNetLarge 9797/9797 [==============================] - 4888s 498ms/step - loss: 0.6272 - accuracy: 0.6492 - val_loss: 0.5500 - val_accuracy: 0.7125 - lr: 0.0010
